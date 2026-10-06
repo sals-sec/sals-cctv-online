@@ -288,8 +288,6 @@
     await text(codeText, W - M - width(codeText, 10, bold), 28, 10, bold, headerInk);
 
     await text('CCTV Footage Request Form', M, 58, 13.5, bold, headerInk);
-    const metaText = `Request No.: ${val(request.no || '—')}   |   Status: ${val(request.status || 'Submitted')}`;
-    await text(metaText, W - M - width(metaText, 8.5, bold), 61, 8.5, bold, muted);
 
     const box = (x, top, w, h, fill) => page.drawRectangle({
       x,
