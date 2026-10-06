@@ -127,29 +127,73 @@ code, pre, .font-mono, td.m, .hc, .step-num, .section-number, .sec-name span, .p
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+.pf-doc-header {
+  margin-bottom: 8px;
+  font-family: Helvetica, Arial, sans-serif;
+  color: #1f2630;
+}
+.pf-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.pf-logo {
+  height: 25px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+.pf-form-code {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1f2630;
+  font-family: Helvetica, Arial, sans-serif !important;
+}
+.pf-header-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pf-doc-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2630;
+  font-family: Helvetica, Arial, sans-serif !important;
+}
+.pf-doc-meta {
+  font-size: 10px;
+  font-weight: 700;
+  color: #4a525d;
+  font-family: Helvetica, Arial, sans-serif !important;
+}
 .pf {
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
   color: #000;
   background: #fff;
-  font-family: 'Roboto', sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
 }
 .pf td, .pf th {
-  border: 1px solid #000;
+  border: 1px solid #262626;
   padding: 4.5px 6px;
   color: #000;
   background: #fff;
   text-transform: none;
   letter-spacing: 0;
   font-size: 11px;
-  font-family: 'Roboto', sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
   vertical-align: top;
 }
 .pf th {
-  background: #d9d9d9;
+  background: #d9d9d9 !important;
   text-align: left;
   font-weight: 700;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 .pf .t {
   text-align: center;
@@ -157,9 +201,11 @@ code, pre, .font-mono, td.m, .hc, .step-num, .section-number, .sec-name span, .p
   font-weight: 700;
 }
 .pf .k {
-  background: #f2f2f2;
+  background: #f2f2f2 !important;
   font-weight: 700;
   width: 19%;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 
 /* Supplementary Kinetic Brutalist layout adjustments */
@@ -1246,8 +1292,17 @@ function printHTML(r){
   const b=(list,sel,oth)=>list.map(o=>{const on=(sel||[]).includes(o);return`${on?'☑':'☐'} ${esc(o.startsWith('Other')&&on&&oth?o+': '+oth:o)}`}).join('&nbsp;&nbsp; ');
   return `<div class="pf-wrap">
     <div class="pf-watermark"><span>CONFIDENTIAL</span></div>
+    <div class="pf-doc-header">
+      <div class="pf-header-top">
+        <img src="/logo.png" alt="SALS" class="pf-logo">
+        <span class="pf-form-code">OEF-25 Rev 02</span>
+      </div>
+      <div class="pf-header-sub">
+        <div class="pf-doc-title">CCTV Footage Request Form</div>
+        <div class="pf-doc-meta">Request No.: ${esc(r.no || '—')} &nbsp;&nbsp;|&nbsp;&nbsp; Status: ${esc(r.status || 'Submitted')}</div>
+      </div>
+    </div>
     <table class="pf">
-      <tr><td class="t" colspan="4">CCTV FOOTAGE REQUEST FORM<br><small>OEF-25 Rev 02 &nbsp;|&nbsp; Request No.: ${esc(r.no)} &nbsp;|&nbsp; Status: ${r.status}</small></td></tr>
       <tr><th colspan="4">SECTION A – INFORMATION</th></tr>
       <tr><td class="k">Request Date</td><td>${fmtD(r.reqDate)}</td><td class="k">Request Time</td><td>${fmt12(r.reqTime)}</td></tr>
       <tr><td class="k">Requestor Name</td><td>${esc(r.name)}</td><td class="k">Employee ID</td><td>${esc(r.empId)}</td></tr>
@@ -1292,7 +1347,7 @@ async function downloadRequestPdf(r){
     toast('Preparing PDF…');
     const logoImg = document.querySelector('header .brand img');
     const logoSrc = logoImg ? logoImg.src : '/logo.png';
-    const bytes = await window.createCctvPdf(r, logoSrc);
+    const bytes = await window.createCctvPdf({ ...r, by: r.by || user?.u || 'admin' }, logoSrc);
     const blob = new Blob([bytes], { type: 'application/pdf' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
