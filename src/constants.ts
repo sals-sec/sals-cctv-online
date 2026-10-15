@@ -12,24 +12,16 @@ export const SK = {
 export const PURPOSES: readonly string[] = [
   'Security Investigation',
   'Safety Investigation',
-  'Incident Investigation',
-  'Theft Investigation',
-  'Accident',
   'Property Damage',
-  'Near Miss',
   'HR Investigation',
-  'Customer Complaint',
-  'Insurance Claim',
   'Audit',
   'Legal Requirement',
   'Other (Please Specify)',
 ];
 
 export const FOOTAGE: readonly string[] = [
-  'Screenshot',
-  'Video Export',
-  'Still Images',
-  'Entire Recording',
+  'Image',
+  'Video',
   'Other (Please Specify)',
 ];
 
