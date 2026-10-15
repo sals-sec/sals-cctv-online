@@ -42,3 +42,6 @@ export const STEPS: Record<RequestStatus, string> = {
   Released: 'Footage handed over',
   Rejected: 'Request declined',
 };
+
+export const DECLARATION_TEXT =
+  'I acknowledge that CCTV footage contains confidential and sensitive information. I agree that the footage will be used solely for the purpose stated above and will not be copied, distributed, disclosed, or used for any unauthorized purpose. I understand that any misuse of the footage may result in disciplinary action and/or legal proceedings.';

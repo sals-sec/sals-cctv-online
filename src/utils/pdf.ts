@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, degrees, PDFFont } from 'pdf-lib';
-import { FOOTAGE, MEDIA, PURPOSES } from '../constants';
+import { DECLARATION_TEXT, FOOTAGE, MEDIA, PURPOSES } from '../constants';
 import { CctvRequest } from '../types';
 import { dayOf, fmt12, fmtD, recTime } from './formatters';
 
@@ -285,9 +285,7 @@ export async function createCctvPdf(request: CctvRequest, logoSrc?: string): Pro
   addFullCheckRow(buildCheckItems(MEDIA, request.media, request.mediaOther), 1.45);
 
   addSection('SECTION E \u2013 DECLARATION');
-  addFullTextRow(
-    'I acknowledge that CCTV footage contains confidential and sensitive information. I agree that the footage will only be used for the approved investigation purpose and will not be copied, distributed, disclosed, or used for unauthorized purposes. I understand that any misuse may result in disciplinary or legal action.'
-  );
+  addFullTextRow(DECLARATION_TEXT);
   addRow4('Requestor Signature', request.ack ? request.sigName : '', 'Date', fmtD(request.sigDate));
 
   addSection('SECTION F \u2013 SECURITY REVIEW');

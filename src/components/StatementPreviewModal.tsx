@@ -1,5 +1,5 @@
 import React from 'react';
-import { FOOTAGE, MEDIA, PURPOSES } from '../constants';
+import { DECLARATION_TEXT, FOOTAGE, MEDIA, PURPOSES } from '../constants';
 import { CctvRequest, UserAccount } from '../types';
 import { dayOf, fmt12, fmtD, recTime } from '../utils/formatters';
 
@@ -115,12 +115,7 @@ export const StatementPreviewContent: React.FC<{ request: CctvRequest; preparedB
             <th colSpan={4}>SECTION E – DECLARATION</th>
           </tr>
           <tr>
-            <td colSpan={4}>
-              I acknowledge that CCTV footage contains confidential and sensitive information. I
-              agree that the footage will only be used for the approved investigation purpose and
-              will not be copied, distributed, disclosed, or used for unauthorized purposes. I
-              understand that any misuse may result in disciplinary or legal action.
-            </td>
+            <td colSpan={4}>{DECLARATION_TEXT}</td>
           </tr>
           <tr>
             <td className="k">Requestor Signature</td>

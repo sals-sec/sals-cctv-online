@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FOOTAGE, MEDIA, PURPOSES } from '../constants';
+import { DECLARATION_TEXT, FOOTAGE, MEDIA, PURPOSES } from '../constants';
 import { CctvRequest } from '../types';
 import { dayOf } from '../utils/formatters';
 
@@ -300,20 +300,33 @@ export const RequestForm: React.FC<RequestFormProps> = ({
           <h3 className="section-title">
             <span className="section-number">05</span>Declaration
           </h3>
-          <p className="decl">
-            I acknowledge that CCTV footage contains confidential and sensitive information. I
-            agree that the footage will only be used for the approved investigation purpose and
-            will not be copied, distributed, disclosed, or used for unauthorized purposes. I
-            understand that any misuse may result in disciplinary or legal action.
-          </p>
-          <div className="checks" style={{ marginBottom: 10 }} id="ackw">
-            <label>
+          <div style={{ marginBottom: 16, marginTop: 4 }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                cursor: 'pointer',
+                lineHeight: 1.6,
+                fontSize: 12.5,
+              }}
+            >
               <input
                 type="checkbox"
+                style={{
+                  marginTop: 3,
+                  flexShrink: 0,
+                  width: 16,
+                  height: 16,
+                  accentColor: 'var(--accent)',
+                  cursor: 'pointer',
+                }}
                 checked={!!request.ack}
                 onChange={(e) => setField('ack', e.target.checked)}
-              />{' '}
-              I acknowledge and agree
+              />
+              <span style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                {DECLARATION_TEXT}
+              </span>
             </label>
           </div>
           <div className="grid">
