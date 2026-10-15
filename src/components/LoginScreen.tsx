@@ -71,10 +71,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, appVer }) => 
             {loading ? 'Signing In…' : 'Sign In'}
           </button>
         </form>
-        <p className="login-help">
-          Roles: <b>admin</b> (Admin) &nbsp;•&nbsp; <b>Ismail</b> (User Full) &nbsp;•&nbsp;{' '}
-          <b>Transport</b> (User Limited)
-        </p>
+        <p className="login-help">Need an account? Contact your administrator.</p>
         <p className="login-build">v{appVer}</p>
       </div>
       <footer className="login-footer">
