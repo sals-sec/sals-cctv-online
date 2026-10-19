@@ -366,12 +366,10 @@ export const RequestForm: React.FC<RequestFormProps> = ({
           }
         >
           <h3 className="section-title">
-            <span className="section-number">06</span>Security Review
-            {isLimited && (
-              <span className="small-muted hc" style={{ fontSize: 11, fontWeight: 400, marginLeft: 8 }}>
-                (Security Officer Only)
-              </span>
-            )}
+            <span className="section-number">06</span>Security Review{' '}
+            <span className="small-muted hc" style={{ fontSize: 11, fontWeight: 400, marginLeft: 6 }}>
+              (to be filled in by the security)
+            </span>
           </h3>
           <div className="grid">
             <div className="field">
@@ -449,12 +447,10 @@ export const RequestForm: React.FC<RequestFormProps> = ({
           }
         >
           <h3 className="section-title">
-            <span className="section-number">07</span>Approval
-            {isLimited && (
-              <span className="small-muted hc" style={{ fontSize: 11, fontWeight: 400, marginLeft: 8 }}>
-                (Authorized Approver Only)
-              </span>
-            )}
+            <span className="section-number">07</span>Approval{' '}
+            <span className="small-muted hc" style={{ fontSize: 11, fontWeight: 400, marginLeft: 6 }}>
+              (to be filled in by the security)
+            </span>
           </h3>
           <div className="grid">
             <div className="field">
