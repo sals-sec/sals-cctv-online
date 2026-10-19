@@ -1,4 +1,4 @@
-import { CctvRequest } from '../types';
+import { CctvRequest, UserAccount } from '../types';
 import { dayOf, footageTxt, mediaTxt, purposeTxt, recTime, today } from './formatters';
 
 export function exportCsv(rows: CctvRequest[]) {
@@ -96,6 +96,46 @@ export function exportJsonBackup(rows: CctvRequest[], appVer: string) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `OEF-25_Backup_${today()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+export function exportUsersCsv(users: UserAccount[]) {
+  const H = ['User ID', 'Role', 'Created By'];
+  const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const L = [H.map(q).join(',')];
+
+  users.forEach((u) => {
+    const roleLabel = u.role === 'admin' ? 'Admin' : u.role === 'full' ? 'User (Full)' : 'User (Limited)';
+    const createdBy = u.u.toLowerCase() === 'admin' ? 'admin' : u.by || 'admin';
+    L.push([u.u, roleLabel, createdBy].map(q).join(','));
+  });
+
+  const text = '\ufeff' + L.join('\r\n');
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `SALS_Users_Export_${today()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+export function exportUsersBackup(users: UserAccount[], appVer: string) {
+  const payload = {
+    app: 'OEF-25-Users',
+    ver: appVer,
+    exported: new Date().toISOString(),
+    users,
+  };
+  const text = JSON.stringify(payload, null, 2);
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `SALS_Users_Backup_${today()}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();

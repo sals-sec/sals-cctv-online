@@ -399,6 +399,31 @@ export const App: React.FC = () => {
     showToast(`User ${username} removed`);
   };
 
+  const handleImportUsers = (incomingUsers: UserAccount[]) => {
+    if (!currentUser || !isRoleAdmin(currentUser)) {
+      showToast('Only admins can import users');
+      return;
+    }
+    let count = 0;
+    const merged = [...users];
+    incomingUsers.forEach((u) => {
+      if (!u || !u.u || !u.role || !u.h || !u.salt) return;
+      const idx = merged.findIndex((x) => x.u.toLowerCase() === u.u.toLowerCase());
+      if (idx >= 0) {
+        if (merged[idx].u.toLowerCase() !== 'admin') {
+          merged[idx] = { ...merged[idx], ...u };
+          count++;
+        }
+      } else {
+        merged.push(u);
+        count++;
+      }
+    });
+    setUsers(merged);
+    save(SK.users, merged);
+    showToast(`${count} user account(s) imported`);
+  };
+
   const printableRequest = previewRequest || currentRequest;
 
   return (
@@ -518,6 +543,7 @@ export const App: React.FC = () => {
         onDeleteUser={handleDeleteUser}
         onClose={() => setIsUsersOpen(false)}
         onToast={showToast}
+        onImportUsers={handleImportUsers}
       />
 
       <Toast message={toastMessage} />

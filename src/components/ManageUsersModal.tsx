@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { APP_VER } from '../constants';
 import { UserAccount, UserRole } from '../types';
 import { isRoleAdmin, isRoleFull, isRoleLimited } from '../utils/auth';
+import { exportUsersBackup, exportUsersCsv } from '../utils/csv';
 
 interface ManageUsersModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface ManageUsersModalProps {
   onDeleteUser: (username: string) => void;
   onClose: () => void;
   onToast: (msg: string) => void;
+  onImportUsers?: (users: UserAccount[]) => void;
 }
 
 export const ManageUsersModal: React.FC<ManageUsersModalProps> = ({
@@ -20,11 +23,33 @@ export const ManageUsersModal: React.FC<ManageUsersModalProps> = ({
   onDeleteUser,
   onClose,
   onToast,
+  onImportUsers,
 }) => {
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('limited');
   const [submitting, setSubmitting] = useState(false);
+  const userFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUserFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result as string);
+        const incoming: UserAccount[] = Array.isArray(d) ? d : d.users;
+        if (!Array.isArray(incoming)) throw new Error('Invalid users backup format');
+        if (onImportUsers) {
+          onImportUsers(incoming);
+        }
+      } catch {
+        onToast('Invalid users backup file');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   if (!isOpen) return null;
 
@@ -140,7 +165,57 @@ export const ManageUsersModal: React.FC<ManageUsersModalProps> = ({
           </button>
         </div>
 
-        <div id="ul" style={{ marginTop: 14, maxHeight: 240, overflowY: 'auto' }}>
+        <div
+          style={{
+            marginTop: 14,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
+          <span className="small-muted hc" style={{ fontSize: 11 }}>
+            {users.length} user{users.length === 1 ? '' : 's'}
+          </span>
+          {isAdmin && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => exportUsersCsv(users)}
+                title="Export user accounts list to CSV"
+              >
+                Export
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => exportUsersBackup(users, APP_VER)}
+                title="Download JSON backup of all user accounts"
+              >
+                Backup
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => userFileInputRef.current?.click()}
+                title="Import user accounts from JSON backup"
+              >
+                Import
+              </button>
+              <input
+                type="file"
+                ref={userFileInputRef}
+                accept=".json"
+                hidden
+                onChange={handleUserFileImport}
+              />
+            </div>
+          )}
+        </div>
+
+        <div id="ul" style={{ marginTop: 10, maxHeight: 240, overflowY: 'auto' }}>
           <table className="compact-table" style={{ width: '100%' }}>
             <thead>
               <tr>
