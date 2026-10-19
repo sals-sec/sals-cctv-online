@@ -11,6 +11,7 @@ interface RequestFormProps {
   onPreview: () => void;
   onExportPdf: () => void;
   onToast: (msg: string) => void;
+  isLimited?: boolean;
 }
 
 export const RequestForm: React.FC<RequestFormProps> = ({
@@ -21,6 +22,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({
   onPreview,
   onExportPdf,
   onToast,
+  isLimited = false,
 }) => {
   const [badFields, setBadFields] = useState<Record<string, boolean>>({});
 
@@ -350,15 +352,34 @@ export const RequestForm: React.FC<RequestFormProps> = ({
         </div>
 
         {/* Section 06: Security Review */}
-        <div className="card" id="section6">
+        <div
+          className="card"
+          id="section6"
+          style={
+            isLimited
+              ? {
+                  opacity: 0.72,
+                  background: 'var(--bg-alt)',
+                  borderStyle: 'dashed',
+                }
+              : undefined
+          }
+        >
           <h3 className="section-title">
             <span className="section-number">06</span>Security Review
+            {isLimited && (
+              <span className="small-muted hc" style={{ fontSize: 11, fontWeight: 400, marginLeft: 8 }}>
+                (Security Officer Only)
+              </span>
+            )}
           </h3>
           <div className="grid">
             <div className="field">
               <label>Received By</label>
               <input
                 type="text"
+                disabled={isLimited}
+                style={isLimited ? { cursor: 'not-allowed' } : undefined}
                 value={request.recvBy || ''}
                 onChange={(e) => setField('recvBy', e.target.value)}
               />
@@ -367,6 +388,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({
               <label>Received Date</label>
               <input
                 type="date"
+                disabled={isLimited}
+                style={isLimited ? { cursor: 'not-allowed' } : undefined}
                 value={request.recvDate || ''}
                 onChange={(e) => setField('recvDate', e.target.value)}
               />
@@ -375,6 +398,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({
               <label>Reviewed By</label>
               <input
                 type="text"
+                disabled={isLimited}
+                style={isLimited ? { cursor: 'not-allowed' } : undefined}
                 value={request.revBy || ''}
                 onChange={(e) => setField('revBy', e.target.value)}
               />
@@ -382,6 +407,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({
             <div className="field">
               <label>Footage Available?</label>
               <select
+                disabled={isLimited}
+                style={isLimited ? { cursor: 'not-allowed' } : undefined}
                 value={request.avail || ''}
                 onChange={(e) => setField('avail', e.target.value as any)}
               >
@@ -393,6 +420,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({
             <div className="field">
               <label>Recording Quality</label>
               <select
+                disabled={isLimited}
+                style={isLimited ? { cursor: 'not-allowed' } : undefined}
                 value={request.quality || ''}
                 onChange={(e) => setField('quality', e.target.value as any)}
               >
@@ -406,15 +435,34 @@ export const RequestForm: React.FC<RequestFormProps> = ({
         </div>
 
         {/* Section 07: Approval */}
-        <div className="card" id="section7">
+        <div
+          className="card"
+          id="section7"
+          style={
+            isLimited
+              ? {
+                  opacity: 0.72,
+                  background: 'var(--bg-alt)',
+                  borderStyle: 'dashed',
+                }
+              : undefined
+          }
+        >
           <h3 className="section-title">
             <span className="section-number">07</span>Approval
+            {isLimited && (
+              <span className="small-muted hc" style={{ fontSize: 11, fontWeight: 400, marginLeft: 8 }}>
+                (Authorized Approver Only)
+              </span>
+            )}
           </h3>
           <div className="grid">
             <div className="field">
               <label>Approver Signature (typed name)</label>
               <input
                 type="text"
+                disabled={isLimited}
+                style={isLimited ? { cursor: 'not-allowed' } : undefined}
                 value={request.apprName || ''}
                 onChange={(e) => setField('apprName', e.target.value)}
               />
@@ -423,6 +471,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({
               <label>Date</label>
               <input
                 type="date"
+                disabled={isLimited}
+                style={isLimited ? { cursor: 'not-allowed' } : undefined}
                 value={request.apprDate || ''}
                 onChange={(e) => setField('apprDate', e.target.value)}
               />
@@ -431,6 +481,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({
               <label>Remarks (tracker note)</label>
               <textarea
                 rows={2}
+                disabled={isLimited}
+                style={isLimited ? { cursor: 'not-allowed' } : undefined}
                 value={request.remarks || ''}
                 onChange={(e) => setField('remarks', e.target.value)}
               />

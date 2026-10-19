@@ -1,4 +1,4 @@
-export type RequestStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Released' | 'Rejected';
+export type RequestStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
 
 export type UserRole = 'admin' | 'full' | 'limited';
 

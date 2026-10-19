@@ -62,7 +62,7 @@ export const TrackerRegister: React.FC<TrackerRegisterProps> = ({
     const total = requests.length;
     const c = (s: RequestStatus) => requests.filter((r) => r.status === s).length;
     const done = requests.filter(
-      (r) => r.apprDate && r.reqDate && (r.status === 'Approved' || r.status === 'Released')
+      (r) => r.apprDate && r.reqDate && r.status === 'Approved'
     );
     const avg = done.length
       ? (
@@ -78,7 +78,6 @@ export const TrackerRegister: React.FC<TrackerRegisterProps> = ({
       { label: 'Submitted', value: c('Submitted') },
       { label: 'Under Review', value: c('Under Review') },
       { label: 'Approved', value: c('Approved') },
-      { label: 'Released', value: c('Released') },
       { label: 'Rejected', value: c('Rejected') },
       { label: 'Avg Days to Approve', value: avg },
     ];

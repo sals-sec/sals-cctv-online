@@ -492,6 +492,7 @@ export const App: React.FC = () => {
                   onPreview={() => setPreviewRequest(currentRequest)}
                   onExportPdf={() => handlePdfExport(currentRequest)}
                   onToast={showToast}
+                  isLimited={isRoleLimited(currentUser)}
                 />
               </>
             )}

@@ -59,6 +59,6 @@ export const mediaTxt = (r: CctvRequest): string =>
 export const statusPillClass = (s: RequestStatus): string => {
   if (s === 'Submitted') return 'status-pill status-open';
   if (s === 'Under Review') return 'status-pill status-progress';
-  if (s === 'Approved' || s === 'Released') return 'status-pill status-closed';
+  if (s === 'Approved') return 'status-pill status-closed';
   return 'status-pill status-rejected';
 };

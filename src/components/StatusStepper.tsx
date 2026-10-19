@@ -16,8 +16,8 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({
   onToast,
 }) => {
   const handleClick = (s: RequestStatus) => {
-    if (isLimited) {
-      onToast('Limited Role requests are submitted with status: Submitted');
+    if (isLimited && s !== 'Submitted') {
+      onToast('User (Limited) is unable to choose Under Review, Approved or Rejected.');
       return;
     }
     onChangeStatus(s);
@@ -28,6 +28,7 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({
       {STATUS.map((s, i) => {
         const isAct = currentStatus === s;
         const isRej = s === 'Rejected';
+        const isLocked = isLimited && s !== 'Submitted';
         return (
           <React.Fragment key={s}>
             <div
@@ -35,11 +36,22 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({
                 isRej && isAct ? 'status-rejected' : ''
               }`}
               data-st={s}
-              role="button"
-              tabIndex={0}
+              role={isLocked ? 'presentation' : 'button'}
+              tabIndex={isLocked ? -1 : 0}
+              aria-disabled={isLocked}
+              title={isLocked ? 'User (Limited) cannot select this status' : undefined}
+              style={
+                isLocked
+                  ? {
+                      opacity: 0.38,
+                      cursor: 'not-allowed',
+                      pointerEvents: 'auto',
+                    }
+                  : undefined
+              }
               onClick={() => handleClick(s)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (!isLocked && (e.key === 'Enter' || e.key === ' ')) {
                   e.preventDefault();
                   handleClick(s);
                 }
@@ -52,7 +64,11 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({
               </div>
             </div>
             {i < STATUS.length - 1 && (
-              <div className="status-arrow" aria-hidden="true">
+              <div
+                className="status-arrow"
+                aria-hidden="true"
+                style={isLimited && i > 0 ? { opacity: 0.3 } : undefined}
+              >
                 →
               </div>
             )}

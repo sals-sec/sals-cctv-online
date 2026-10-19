@@ -31,7 +31,6 @@ export const STATUS: readonly RequestStatus[] = [
   'Submitted',
   'Under Review',
   'Approved',
-  'Released',
   'Rejected',
 ];
 
@@ -39,7 +38,6 @@ export const STEPS: Record<RequestStatus, string> = {
   Submitted: 'Request received',
   'Under Review': 'Security checking footage',
   Approved: 'Approver signed off',
-  Released: 'Footage handed over',
   Rejected: 'Request declined',
 };
 
