@@ -85,7 +85,7 @@ export const App: React.FC = () => {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [requests, setRequests] = useState<CctvRequest[]>([]);
-  const [settings, setSettings] = useState<AppSettings>({ dark: true, officer: '' });
+  const [settings, setSettings] = useState<AppSettings>({ dark: false, officer: '' });
   const [activeTab, setActiveTab] = useState<TabType>('form');
   const [currentRequest, setCurrentRequest] = useState<CctvRequest | null>(null);
   const [activeSection, setActiveSection] = useState<number>(1);
@@ -112,7 +112,7 @@ export const App: React.FC = () => {
 
   // Initialize storage, users, settings on mount
   useEffect(() => {
-    const loadedSettings = load<AppSettings>(SK.set, { dark: true, officer: '' });
+    const loadedSettings = load<AppSettings>(SK.set, { dark: false, officer: '' });
     setSettings(loadedSettings);
     document.documentElement.dataset.theme = loadedSettings.dark ? 'dark' : 'light';
 

@@ -34,7 +34,7 @@ export const StatementPreviewContent: React.FC<{ request: CctvRequest; preparedB
       <div className="pf-doc-header">
         <div className="pf-header-top">
           <img src="/logo.png" alt="SALS" className="pf-logo" />
-          <span className="pf-form-code">OEF-25 Rev 02</span>
+          <span className="pf-form-code">OEF-25</span>
         </div>
         <div className="pf-header-sub">
           <div className="pf-doc-title">CCTV Footage Request Form</div>

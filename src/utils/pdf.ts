@@ -362,7 +362,7 @@ export async function createCctvPdf(request: CctvRequest, logoSrc?: string): Pro
   } else {
     await text('SALS', M, 26, 18, bold, accent);
   }
-  const codeText = 'OEF-25 Rev 02';
+  const codeText = 'OEF-25';
   await text(codeText, W - M - width(codeText, 10, bold), 28, 10, bold, headerInk);
   await text('CCTV Footage Request Form', M, 58, 13.5, bold, headerInk);
 
