@@ -84,7 +84,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({
             <p id="pageIntro">Complete sections 1 - 5 of the request form.</p>
           </div>
         </div>
-        <span className="page-tag">Form OEF-25 Rev 02</span>
+        <span className="page-tag">Form OEF-25</span>
       </div>
 
       <form id="fh" onSubmit={(e) => e.preventDefault()}>

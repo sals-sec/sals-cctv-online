@@ -146,7 +146,7 @@ export const TrackerRegister: React.FC<TrackerRegisterProps> = ({
             <p>Register of CCTV footage requests and their review status.</p>
           </div>
         </div>
-        <span className="page-tag">Form OEF-25 Rev 02</span>
+        <span className="page-tag">Form OEF-25</span>
       </div>
 
       <div className="stats" id="stats">
@@ -346,7 +346,7 @@ export const TrackerRegister: React.FC<TrackerRegisterProps> = ({
                                 className="btn btn-secondary btn-sm"
                                 onClick={() => onPdfRequest(r)}
                               >
-                                PDF
+                                Export
                               </button>
                               <button
                                 type="button"
@@ -370,7 +370,7 @@ export const TrackerRegister: React.FC<TrackerRegisterProps> = ({
                                 className="btn btn-secondary btn-sm"
                                 onClick={() => onPdfRequest(r)}
                               >
-                                PDF
+                                Export
                               </button>
                             </>
                           )}
