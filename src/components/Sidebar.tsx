@@ -23,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     Boolean(r?.purposes && r.purposes.length > 0),
     Boolean(r?.area?.trim() && r?.recDate?.trim()),
     Boolean((r?.footage && r.footage.length > 0) || (r?.media && r.media.length > 0)),
-    Boolean(r?.ack || r?.sigName?.trim()),
+    Boolean(r?.ack),
     Boolean(r?.recvBy?.trim() || r?.revBy?.trim() || r?.avail),
     Boolean(r?.apprName?.trim() || r?.remarks?.trim()),
   ];

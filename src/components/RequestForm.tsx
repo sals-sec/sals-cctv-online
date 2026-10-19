@@ -331,24 +331,6 @@ export const RequestForm: React.FC<RequestFormProps> = ({
               </span>
             </label>
           </div>
-          <div className="grid">
-            <div className="field">
-              <label>Requestor Signature (typed name)</label>
-              <input
-                type="text"
-                value={request.sigName || ''}
-                onChange={(e) => setField('sigName', e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label>Date</label>
-              <input
-                type="date"
-                value={request.sigDate || ''}
-                onChange={(e) => setField('sigDate', e.target.value)}
-              />
-            </div>
-          </div>
         </div>
 
         {/* Section 06: Security Review */}

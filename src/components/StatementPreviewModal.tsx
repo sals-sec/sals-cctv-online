@@ -117,12 +117,6 @@ export const StatementPreviewContent: React.FC<{ request: CctvRequest; preparedB
           <tr>
             <td colSpan={4}>{DECLARATION_TEXT}</td>
           </tr>
-          <tr>
-            <td className="k">Requestor Signature</td>
-            <td>{r.ack ? r.sigName : ''}</td>
-            <td className="k">Date</td>
-            <td>{fmtD(r.sigDate)}</td>
-          </tr>
 
           <tr>
             <th colSpan={4}>SECTION F – SECURITY REVIEW</th>

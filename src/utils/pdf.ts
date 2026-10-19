@@ -286,7 +286,6 @@ export async function createCctvPdf(request: CctvRequest, logoSrc?: string): Pro
 
   addSection('SECTION E \u2013 DECLARATION');
   addFullTextRow(DECLARATION_TEXT);
-  addRow4('Requestor Signature', request.ack ? request.sigName : '', 'Date', fmtD(request.sigDate));
 
   addSection('SECTION F \u2013 SECURITY REVIEW');
   addRow4('Received By', request.recvBy, 'Received Date', fmtD(request.recvDate));
