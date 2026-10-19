@@ -181,6 +181,29 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activeTab]);
 
+  // Handle Escape key to dismiss modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewRequest) setPreviewRequest(null);
+        else if (requestorModalRequest) setRequestorModalRequest(null);
+        else if (approvalModalRequest) setApprovalModalRequest(null);
+        else if (deleteModalRequest) setDeleteModalRequest(null);
+        else if (isUsersOpen) setIsUsersOpen(false);
+        else if (isSettingsOpen) setIsSettingsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    previewRequest,
+    requestorModalRequest,
+    approvalModalRequest,
+    deleteModalRequest,
+    isUsersOpen,
+    isSettingsOpen,
+  ]);
+
   const handleSelectSection = (num: number) => {
     setActiveSection(num);
     isNavClickingRef.current = true;
