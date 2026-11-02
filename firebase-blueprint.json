@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "cctv_request": {
+      "title": "CCTV Footage Request",
+      "description": "Form OEF-25 CCTV Footage Request document",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "no": { "type": "string", "maxLength": 32 },
+        "status": {
+          "type": "string",
+          "enum": ["Submitted", "Under Review", "Approved", "Rejected"]
+        },
+        "reqDate": { "type": "string", "maxLength": 32 },
+        "reqTime": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 128 },
+        "empId": { "type": "string", "maxLength": 64 },
+        "dept": { "type": "string", "maxLength": 128 },
+        "pos": { "type": "string", "maxLength": 128 },
+        "contact": { "type": "string", "maxLength": 64 },
+        "email": { "type": "string", "maxLength": 128 },
+        "purposeOther": { "type": "string", "maxLength": 256 },
+        "area": { "type": "string", "maxLength": 128 },
+        "recDate": { "type": "string", "maxLength": 32 },
+        "recFrom": { "type": "string", "maxLength": 32 },
+        "recTo": { "type": "string", "maxLength": 32 },
+        "footageOther": { "type": "string", "maxLength": 256 },
+        "mediaOther": { "type": "string", "maxLength": 256 },
+        "ack": { "type": "boolean" },
+        "sigName": { "type": "string", "maxLength": 128 },
+        "sigDate": { "type": "string", "maxLength": 32 },
+        "recvBy": { "type": "string", "maxLength": 128 },
+        "recvDate": { "type": "string", "maxLength": 32 },
+        "revBy": { "type": "string", "maxLength": 128 },
+        "avail": { "type": "string", "maxLength": 32 },
+        "quality": { "type": "string", "maxLength": 32 },
+        "apprName": { "type": "string", "maxLength": 128 },
+        "apprDate": { "type": "string", "maxLength": 32 },
+        "remarks": { "type": "string", "maxLength": 1024 },
+        "by": { "type": "string", "maxLength": 64 },
+        "created": { "type": "string", "maxLength": 64 },
+        "updated": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "no", "status", "reqDate", "name", "empId", "area", "recDate"]
+    },
+    "app_user": {
+      "title": "Application User Account",
+      "description": "User account credentials and role for access control",
+      "type": "object",
+      "properties": {
+        "u": { "type": "string", "maxLength": 64 },
+        "role": { "type": "string", "enum": ["admin", "full", "limited"] },
+        "salt": { "type": "string", "maxLength": 64 },
+        "h": { "type": "string", "maxLength": 128 },
+        "by": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["u", "role"]
+    },
+    "app_settings": {
+      "title": "Application Settings",
+      "description": "Global settings for the tracker",
+      "type": "object",
+      "properties": {
+        "dark": { "type": "boolean" },
+        "officer": { "type": "string", "maxLength": 128 }
+      }
+    }
+  },
+  "firestore": {
+    "/cctv_requests/{requestId}": {
+      "schema": "cctv_request",
+      "description": "CCTV Footage Requests store"
+    },
+    "/users/{userId}": {
+      "schema": "app_user",
+      "description": "User Accounts store"
+    },
+    "/settings/{settingId}": {
+      "schema": "app_settings",
+      "description": "Settings configuration"
+    }
+  }
+}

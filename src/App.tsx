@@ -12,6 +12,18 @@ import {
   fetchSettingsApi,
   saveSettingsApi,
 } from './api/client.ts';
+import {
+  getFirestoreRequests,
+  saveFirestoreRequest,
+  deleteFirestoreRequest,
+  batchSaveFirestoreRequests,
+  subscribeFirestoreRequests,
+  getFirestoreUsers,
+  saveFirestoreUser,
+  deleteFirestoreUser,
+  getFirestoreSettings,
+  saveFirestoreSettings,
+} from './api/firestoreClient.ts';
 import { APP_VER, SK } from './constants.ts';
 import { AppSettings, CctvRequest, RequestStatus, TabType, UserAccount, UserRole } from './types.ts';
 import { hash, initUsers, isRoleAdmin, isRoleFull, isRoleLimited, roleName, verifyLogin } from './utils/auth.ts';
@@ -109,43 +121,67 @@ export const App: React.FC = () => {
     }, 2400);
   }, []);
 
-  // Load Cloud SQL data when user is authenticated
+  // Load Firebase Firestore & Cloud SQL data when user is authenticated
   const loadDatabaseData = useCallback(async (_user?: UserAccount) => {
     try {
-      // 1. Fetch requests from Cloud SQL
-      const remoteRequests = await fetchRequestsApi().catch(() => null);
-      if (remoteRequests && remoteRequests.length > 0) {
-        setRequests(remoteRequests);
-        save(SK.data, { rows: remoteRequests });
+      // 1. Fetch requests from Firestore first
+      let loadedReqs = await getFirestoreRequests().catch(() => []);
+      if (!loadedReqs || loadedReqs.length === 0) {
+        // Fallback to Cloud SQL API
+        loadedReqs = await fetchRequestsApi().catch(() => []);
+      }
+
+      if (loadedReqs && loadedReqs.length > 0) {
+        setRequests(loadedReqs);
+        save(SK.data, { rows: loadedReqs });
       } else {
-        // Fallback or migrate existing local requests to Cloud SQL
+        // Check local storage and migrate to Firestore & Cloud SQL
         const dbLocal = load<{ rows: CctvRequest[] } | null>(SK.data, null);
         if (dbLocal && Array.isArray(dbLocal.rows) && dbLocal.rows.length > 0) {
           const valid = dbLocal.rows.filter((r) => r && r.id !== 'seed-oef25-001' && r.no !== 'CCTV-2026-001');
           if (valid.length > 0) {
+            await batchSaveFirestoreRequests(valid).catch(console.error);
             await batchSaveRequestsApi(valid).catch(console.error);
             setRequests(valid);
           }
         }
       }
 
-      // 2. Fetch users from Cloud SQL
-      const remoteUsers = await fetchUsersApi().catch(() => null);
-      if (remoteUsers && Array.isArray(remoteUsers) && remoteUsers.length > 0) {
-        setUsers(remoteUsers);
+      // 2. Fetch users from Firestore / Cloud SQL
+      let loadedUsers = await getFirestoreUsers().catch(() => []);
+      if (!loadedUsers || loadedUsers.length === 0) {
+        loadedUsers = await fetchUsersApi().catch(() => []);
+      }
+      if (loadedUsers && Array.isArray(loadedUsers) && loadedUsers.length > 0) {
+        setUsers(loadedUsers);
       }
 
-      // 3. Fetch settings from Cloud SQL
-      const remoteSettings = await fetchSettingsApi().catch(() => null);
-      if (remoteSettings && typeof remoteSettings === 'object') {
-        setSettings(remoteSettings);
-        save(SK.set, remoteSettings);
-        document.documentElement.dataset.theme = remoteSettings.dark ? 'dark' : 'light';
+      // 3. Fetch settings from Firestore / Cloud SQL
+      let loadedSettings = await getFirestoreSettings().catch(() => null);
+      if (!loadedSettings) {
+        loadedSettings = await fetchSettingsApi().catch(() => null);
+      }
+      if (loadedSettings && typeof loadedSettings === 'object') {
+        setSettings(loadedSettings);
+        save(SK.set, loadedSettings);
+        document.documentElement.dataset.theme = loadedSettings.dark ? 'dark' : 'light';
       }
     } catch (err) {
       console.error('Failed to load database data:', err);
     }
   }, []);
+
+  // Subscribe to real-time updates from Firebase Firestore
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsub = subscribeFirestoreRequests((items) => {
+      if (items && items.length > 0) {
+        setRequests(items);
+        save(SK.data, { rows: items });
+      }
+    });
+    return () => unsub();
+  }, [currentUser]);
 
   // Initialize storage, users, settings on mount
   useEffect(() => {
@@ -167,10 +203,11 @@ export const App: React.FC = () => {
       const sessionUser = sess.get(SK.ses);
       if (sessionUser) {
         setActiveUserId(sessionUser);
-        const remoteUsers = await fetchUsersApi().catch(() => null);
-        let found = remoteUsers?.find((z) => z.u.toLowerCase() === sessionUser.toLowerCase());
-        if (!found) {
-          found = initializedUsers.find((z) => z.u.toLowerCase() === sessionUser.toLowerCase());
+        let found = initializedUsers.find((z) => z.u.toLowerCase() === sessionUser.toLowerCase());
+        const remoteUsers = await getFirestoreUsers().catch(() => []);
+        if (remoteUsers.length > 0) {
+          const rFound = remoteUsers.find((z) => z.u.toLowerCase() === sessionUser.toLowerCase());
+          if (rFound) found = rFound;
         }
         if (found) {
           setCurrentUser(found);
@@ -294,6 +331,7 @@ export const App: React.FC = () => {
     const updated = { ...settings, dark: !settings.dark };
     setSettings(updated);
     save(SK.set, updated);
+    saveFirestoreSettings(updated).catch(console.error);
     saveSettingsApi(updated).catch(console.error);
   };
 
@@ -301,9 +339,10 @@ export const App: React.FC = () => {
     const updated = { ...settings, officer };
     setSettings(updated);
     save(SK.set, updated);
+    saveFirestoreSettings(updated).catch(console.error);
     saveSettingsApi(updated).catch(console.error);
     setIsSettingsOpen(false);
-    showToast('Settings saved to Cloud SQL');
+    showToast('Settings saved to Firebase & Cloud SQL');
   };
 
   const handleTabChange = (tab: TabType) => {
@@ -355,16 +394,17 @@ export const App: React.FC = () => {
     setRequests(updatedRows);
     save(SK.data, { rows: updatedRows });
 
-    // Save to Cloud SQL
+    // Save to Firebase Firestore & Cloud SQL
     try {
+      await saveFirestoreRequest(finalReq);
       await saveRequestApi(finalReq);
     } catch (err) {
-      console.warn('Cloud SQL save notice:', err);
+      console.warn('Database save notice:', err);
     }
 
     setCurrentRequest(null);
     setActiveTab('reg');
-    showToast(`Request ${finalReq.no} saved to Cloud SQL`);
+    showToast(`Request ${finalReq.no} saved to Firebase`);
   };
 
   const handleCancelForm = () => {
@@ -410,14 +450,15 @@ export const App: React.FC = () => {
     save(SK.data, { rows: filtered });
     setDeleteModalRequest(null);
 
-    // Delete from Cloud SQL
+    // Delete from Firebase Firestore & Cloud SQL
     try {
+      await deleteFirestoreRequest(idToDelete);
       await deleteRequestApi(idToDelete);
     } catch (err) {
-      console.warn('Cloud SQL delete notice:', err);
+      console.warn('Database delete notice:', err);
     }
 
-    showToast('Request deleted from Cloud SQL');
+    showToast('Request deleted from Firebase');
   };
 
   const handleImportBackup = async (file: File) => {
@@ -449,10 +490,11 @@ export const App: React.FC = () => {
         setRequests(updatedList);
         save(SK.data, { rows: updatedList });
 
-        // Save imported requests to Cloud SQL
+        // Save imported requests to Firebase Firestore & Cloud SQL
+        await batchSaveFirestoreRequests(updatedList).catch(console.error);
         await batchSaveRequestsApi(updatedList).catch(console.error);
 
-        showToast(`${count} request(s) imported & synced with Cloud SQL`);
+        showToast(`${count} request(s) imported & synced to Firebase`);
       } catch {
         showToast('Invalid backup file');
       }
@@ -473,9 +515,10 @@ export const App: React.FC = () => {
     setUsers(updated);
     save(SK.users, updated);
 
-    // Save user to Cloud SQL
+    // Save to Firebase Firestore & Cloud SQL
+    await saveFirestoreUser(newUser).catch(console.error);
     await createUserApi(u, p, r).catch(console.error);
-    showToast(`User created (${roleName(r)}) in Cloud SQL`);
+    showToast(`User created (${roleName(r)}) in Firebase & Cloud SQL`);
   };
 
   const handleDeleteUser = async (username: string) => {
@@ -496,6 +539,7 @@ export const App: React.FC = () => {
     setUsers(updated);
     save(SK.users, updated);
 
+    await deleteFirestoreUser(username).catch(console.error);
     await deleteUserApi(username).catch(console.error);
     showToast(`User ${username} removed`);
   };
