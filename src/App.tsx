@@ -1,18 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  loginApi,
-  setActiveUserId,
-  fetchRequestsApi,
-  saveRequestApi,
-  deleteRequestApi,
-  batchSaveRequestsApi,
-  fetchUsersApi,
-  createUserApi,
-  deleteUserApi,
-  fetchSettingsApi,
-  saveSettingsApi,
-} from './api/client.ts';
-import {
   getFirestoreRequests,
   saveFirestoreRequest,
   deleteFirestoreRequest,
@@ -121,53 +108,50 @@ export const App: React.FC = () => {
     }, 2400);
   }, []);
 
-  // Load Firebase Firestore & Cloud SQL data when user is authenticated
+  // Load Firebase Firestore data when user is authenticated
   const loadDatabaseData = useCallback(async (_user?: UserAccount) => {
     try {
-      // 1. Fetch requests from Firestore first
-      let loadedReqs = await getFirestoreRequests().catch(() => []);
-      if (!loadedReqs || loadedReqs.length === 0) {
-        // Fallback to Cloud SQL API
-        loadedReqs = await fetchRequestsApi().catch(() => []);
-      }
-
+      // 1. Fetch requests from Firestore
+      const loadedReqs = await getFirestoreRequests().catch(() => []);
       if (loadedReqs && loadedReqs.length > 0) {
         setRequests(loadedReqs);
         save(SK.data, { rows: loadedReqs });
       } else {
-        // Check local storage and migrate to Firestore & Cloud SQL
+        // Migrate existing local requests to Firestore
         const dbLocal = load<{ rows: CctvRequest[] } | null>(SK.data, null);
         if (dbLocal && Array.isArray(dbLocal.rows) && dbLocal.rows.length > 0) {
           const valid = dbLocal.rows.filter((r) => r && r.id !== 'seed-oef25-001' && r.no !== 'CCTV-2026-001');
           if (valid.length > 0) {
             await batchSaveFirestoreRequests(valid).catch(console.error);
-            await batchSaveRequestsApi(valid).catch(console.error);
             setRequests(valid);
           }
         }
       }
 
-      // 2. Fetch users from Firestore / Cloud SQL
-      let loadedUsers = await getFirestoreUsers().catch(() => []);
-      if (!loadedUsers || loadedUsers.length === 0) {
-        loadedUsers = await fetchUsersApi().catch(() => []);
-      }
+      // 2. Fetch users from Firestore
+      const loadedUsers = await getFirestoreUsers().catch(() => []);
       if (loadedUsers && Array.isArray(loadedUsers) && loadedUsers.length > 0) {
         setUsers(loadedUsers);
+        save(SK.users, loadedUsers);
+      } else {
+        // Seed default users to Firestore
+        const initList = await initUsers();
+        for (const u of initList) {
+          await saveFirestoreUser(u).catch(console.error);
+        }
+        setUsers(initList);
+        save(SK.users, initList);
       }
 
-      // 3. Fetch settings from Firestore / Cloud SQL
-      let loadedSettings = await getFirestoreSettings().catch(() => null);
-      if (!loadedSettings) {
-        loadedSettings = await fetchSettingsApi().catch(() => null);
-      }
+      // 3. Fetch settings from Firestore
+      const loadedSettings = await getFirestoreSettings().catch(() => null);
       if (loadedSettings && typeof loadedSettings === 'object') {
         setSettings(loadedSettings);
         save(SK.set, loadedSettings);
         document.documentElement.dataset.theme = loadedSettings.dark ? 'dark' : 'light';
       }
     } catch (err) {
-      console.error('Failed to load database data:', err);
+      console.error('Failed to load Firestore data:', err);
     }
   }, []);
 
@@ -202,7 +186,6 @@ export const App: React.FC = () => {
 
       const sessionUser = sess.get(SK.ses);
       if (sessionUser) {
-        setActiveUserId(sessionUser);
         let found = initializedUsers.find((z) => z.u.toLowerCase() === sessionUser.toLowerCase());
         const remoteUsers = await getFirestoreUsers().catch(() => []);
         if (remoteUsers.length > 0) {
@@ -303,13 +286,18 @@ export const App: React.FC = () => {
   };
 
   const handleLogin = async (username: string, pass: string) => {
-    let account: UserAccount;
-    try {
-      account = await loginApi(username, pass);
-    } catch {
-      account = await verifyLogin(users, username, pass);
-      setActiveUserId(account.u);
+    let currentUsersList = users;
+    if (currentUsersList.length === 0) {
+      const remoteUsers = await getFirestoreUsers().catch(() => []);
+      if (remoteUsers.length > 0) {
+        currentUsersList = remoteUsers;
+        setUsers(remoteUsers);
+      } else {
+        currentUsersList = await initUsers();
+        setUsers(currentUsersList);
+      }
     }
+    const account = await verifyLogin(currentUsersList, username, pass);
     setCurrentUser(account);
     sess.set(SK.ses, account.u);
     document.body.setAttribute('data-authenticated', 'true');
@@ -321,7 +309,6 @@ export const App: React.FC = () => {
 
   const handleLogout = async () => {
     sess.del(SK.ses);
-    setActiveUserId(null);
     setCurrentUser(null);
     document.body.removeAttribute('data-authenticated');
     showToast('Signed out');
@@ -332,7 +319,6 @@ export const App: React.FC = () => {
     setSettings(updated);
     save(SK.set, updated);
     saveFirestoreSettings(updated).catch(console.error);
-    saveSettingsApi(updated).catch(console.error);
   };
 
   const handleSaveSettings = (officer: string) => {
@@ -340,9 +326,8 @@ export const App: React.FC = () => {
     setSettings(updated);
     save(SK.set, updated);
     saveFirestoreSettings(updated).catch(console.error);
-    saveSettingsApi(updated).catch(console.error);
     setIsSettingsOpen(false);
-    showToast('Settings saved to Firebase & Cloud SQL');
+    showToast('Settings saved to Firebase');
   };
 
   const handleTabChange = (tab: TabType) => {
@@ -394,12 +379,11 @@ export const App: React.FC = () => {
     setRequests(updatedRows);
     save(SK.data, { rows: updatedRows });
 
-    // Save to Firebase Firestore & Cloud SQL
+    // Save directly to Firebase Firestore
     try {
       await saveFirestoreRequest(finalReq);
-      await saveRequestApi(finalReq);
     } catch (err) {
-      console.warn('Database save notice:', err);
+      console.warn('Firebase save notice:', err);
     }
 
     setCurrentRequest(null);
@@ -450,12 +434,11 @@ export const App: React.FC = () => {
     save(SK.data, { rows: filtered });
     setDeleteModalRequest(null);
 
-    // Delete from Firebase Firestore & Cloud SQL
+    // Delete from Firebase Firestore
     try {
       await deleteFirestoreRequest(idToDelete);
-      await deleteRequestApi(idToDelete);
     } catch (err) {
-      console.warn('Database delete notice:', err);
+      console.warn('Firebase delete notice:', err);
     }
 
     showToast('Request deleted from Firebase');
@@ -490,9 +473,8 @@ export const App: React.FC = () => {
         setRequests(updatedList);
         save(SK.data, { rows: updatedList });
 
-        // Save imported requests to Firebase Firestore & Cloud SQL
+        // Save imported requests directly to Firebase Firestore
         await batchSaveFirestoreRequests(updatedList).catch(console.error);
-        await batchSaveRequestsApi(updatedList).catch(console.error);
 
         showToast(`${count} request(s) imported & synced to Firebase`);
       } catch {
@@ -515,10 +497,9 @@ export const App: React.FC = () => {
     setUsers(updated);
     save(SK.users, updated);
 
-    // Save to Firebase Firestore & Cloud SQL
+    // Save to Firebase Firestore
     await saveFirestoreUser(newUser).catch(console.error);
-    await createUserApi(u, p, r).catch(console.error);
-    showToast(`User created (${roleName(r)}) in Firebase & Cloud SQL`);
+    showToast(`User created (${roleName(r)}) in Firebase`);
   };
 
   const handleDeleteUser = async (username: string) => {
@@ -540,33 +521,34 @@ export const App: React.FC = () => {
     save(SK.users, updated);
 
     await deleteFirestoreUser(username).catch(console.error);
-    await deleteUserApi(username).catch(console.error);
     showToast(`User ${username} removed`);
   };
 
-  const handleImportUsers = (incomingUsers: UserAccount[]) => {
+  const handleImportUsers = async (incomingUsers: UserAccount[]) => {
     if (!currentUser || !isRoleAdmin(currentUser)) {
       showToast('Only admins can import users');
       return;
     }
     let count = 0;
     const merged = [...users];
-    incomingUsers.forEach((u) => {
-      if (!u || !u.u || !u.role) return;
+    for (const u of incomingUsers) {
+      if (!u || !u.u || !u.role) continue;
       const idx = merged.findIndex((x) => x.u.toLowerCase() === u.u.toLowerCase());
       if (idx >= 0) {
         if (merged[idx].u.toLowerCase() !== 'admin') {
           merged[idx] = { ...merged[idx], ...u };
+          await saveFirestoreUser(merged[idx]).catch(console.error);
           count++;
         }
       } else {
         merged.push(u);
+        await saveFirestoreUser(u).catch(console.error);
         count++;
       }
-    });
+    }
     setUsers(merged);
     save(SK.users, merged);
-    showToast(`${count} user account(s) imported`);
+    showToast(`${count} user account(s) imported into Firebase`);
   };
 
   const printableRequest = previewRequest || currentRequest;
