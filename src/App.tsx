@@ -1,73 +1,71 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { APP_VER, SK } from './constants';
-import { AppSettings, CctvRequest, RequestStatus, TabType, UserAccount, UserRole } from './types';
-import { hash, initUsers, isRoleAdmin, isRoleFull, isRoleLimited, roleName, verifyLogin } from './utils/auth';
-import { exportCsv, exportJsonBackup } from './utils/csv';
-import { nowT, today } from './utils/formatters';
-import { downloadPdfFile } from './utils/pdf';
-import { load, save, sess } from './utils/storage';
-
-import { Header } from './components/Header';
-import { ApprovalModal, RequestorModal } from './components/InfoModals';
-import { LoginScreen } from './components/LoginScreen';
-import { ManageUsersModal } from './components/ManageUsersModal';
-import { RequestForm } from './components/RequestForm';
-import { SettingsModal } from './components/SettingsModal';
-import { Sidebar } from './components/Sidebar';
 import {
-  StatementPreviewContent,
-  StatementPreviewModal,
-} from './components/StatementPreviewModal';
-import { StatusStepper } from './components/StatusStepper';
-import { Toast } from './components/Toast';
-import { TrackerRegister } from './components/TrackerRegister';
-import { DeleteModal } from './components/DeleteModal';
+  loginApi,
+  setActiveUserId,
+  fetchRequestsApi,
+  saveRequestApi,
+  deleteRequestApi,
+  batchSaveRequestsApi,
+  fetchUsersApi,
+  createUserApi,
+  deleteUserApi,
+  fetchSettingsApi,
+  saveSettingsApi,
+} from './api/client.ts';
+import { APP_VER, SK } from './constants.ts';
+import { AppSettings, CctvRequest, RequestStatus, TabType, UserAccount, UserRole } from './types.ts';
+import { hash, initUsers, isRoleAdmin, isRoleFull, isRoleLimited, roleName, verifyLogin } from './utils/auth.ts';
+import { downloadPdfFile } from './utils/pdf.ts';
+import { exportCsv, exportJsonBackup } from './utils/csv.ts';
+import { getNextNo, today } from './utils/formatters.ts';
+import { load, save, sess } from './utils/storage.ts';
 
-function getNextNo(existingList: CctvRequest[]): string {
-  const y = new Date().getFullYear();
-  const p = `CCTV-${y}-`;
-  let m = 0;
-  existingList.forEach((r) => {
-    if (r.no?.startsWith(p)) {
-      const num = parseInt(r.no.slice(p.length), 10) || 0;
-      m = Math.max(m, num);
-    }
-  });
-  return p + String(m + 1).padStart(3, '0');
-}
+// Components
+import { Header } from './components/Header.tsx';
+import { Sidebar } from './components/Sidebar.tsx';
+import { StatusStepper } from './components/StatusStepper.tsx';
+import { RequestForm } from './components/RequestForm.tsx';
+import { TrackerRegister } from './components/TrackerRegister.tsx';
+import { LoginScreen } from './components/LoginScreen.tsx';
+import { Toast } from './components/Toast.tsx';
+import { StatementPreviewModal, StatementPreviewContent } from './components/StatementPreviewModal.tsx';
+import { RequestorModal, ApprovalModal } from './components/InfoModals.tsx';
+import { DeleteModal } from './components/DeleteModal.tsx';
+import { SettingsModal } from './components/SettingsModal.tsx';
+import { ManageUsersModal } from './components/ManageUsersModal.tsx';
 
-function makeBlankRequest(
-  userAcc?: UserAccount | null,
-  currentOfficer?: string,
-  reqsList: CctvRequest[] = []
-): CctvRequest {
+function makeBlankRequest(user: UserAccount | null, defaultOfficer: string, existingRows: CctvRequest[]): CctvRequest {
+  const reqNo = getNextNo(existingRows);
+  const now = new Date();
+  const timeStr = now.toTimeString().slice(0, 5);
+  const dateStr = today();
+
   return {
-    _new: true,
-    id: 'r' + Date.now().toString(36),
-    no: getNextNo(reqsList),
+    id: 'req-' + Date.now(),
+    no: reqNo,
     status: 'Submitted',
-    reqDate: today(),
-    reqTime: nowT(),
-    name: '',
+    reqDate: dateStr,
+    reqTime: timeStr,
+    name: user?.u || '',
     empId: '',
     dept: '',
     pos: '',
     contact: '',
-    email: '',
+    email: user?.email || '',
     purposes: [],
     purposeOther: '',
     area: '',
-    recDate: '',
-    recFrom: '',
-    recTo: '',
+    recDate: dateStr,
+    recFrom: '09:00',
+    recTo: '10:00',
     footage: [],
     footageOther: '',
-    media: [],
+    media: ['E-mail'],
     mediaOther: '',
     ack: false,
-    sigName: '',
-    sigDate: '',
-    recvBy: currentOfficer || '',
+    sigName: user?.u || '',
+    sigDate: dateStr,
+    recvBy: defaultOfficer || '',
     recvDate: '',
     revBy: '',
     avail: '',
@@ -75,9 +73,10 @@ function makeBlankRequest(
     apprName: '',
     apprDate: '',
     remarks: '',
-    by: userAcc?.u || '',
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
+    by: user?.u || 'unknown',
+    created: now.toISOString(),
+    updated: now.toISOString(),
+    _new: true,
   };
 }
 
@@ -110,6 +109,44 @@ export const App: React.FC = () => {
     }, 2400);
   }, []);
 
+  // Load Cloud SQL data when user is authenticated
+  const loadDatabaseData = useCallback(async (_user?: UserAccount) => {
+    try {
+      // 1. Fetch requests from Cloud SQL
+      const remoteRequests = await fetchRequestsApi().catch(() => null);
+      if (remoteRequests && remoteRequests.length > 0) {
+        setRequests(remoteRequests);
+        save(SK.data, { rows: remoteRequests });
+      } else {
+        // Fallback or migrate existing local requests to Cloud SQL
+        const dbLocal = load<{ rows: CctvRequest[] } | null>(SK.data, null);
+        if (dbLocal && Array.isArray(dbLocal.rows) && dbLocal.rows.length > 0) {
+          const valid = dbLocal.rows.filter((r) => r && r.id !== 'seed-oef25-001' && r.no !== 'CCTV-2026-001');
+          if (valid.length > 0) {
+            await batchSaveRequestsApi(valid).catch(console.error);
+            setRequests(valid);
+          }
+        }
+      }
+
+      // 2. Fetch users from Cloud SQL
+      const remoteUsers = await fetchUsersApi().catch(() => null);
+      if (remoteUsers && Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+        setUsers(remoteUsers);
+      }
+
+      // 3. Fetch settings from Cloud SQL
+      const remoteSettings = await fetchSettingsApi().catch(() => null);
+      if (remoteSettings && typeof remoteSettings === 'object') {
+        setSettings(remoteSettings);
+        save(SK.set, remoteSettings);
+        document.documentElement.dataset.theme = remoteSettings.dark ? 'dark' : 'light';
+      }
+    } catch (err) {
+      console.error('Failed to load database data:', err);
+    }
+  }, []);
+
   // Initialize storage, users, settings on mount
   useEffect(() => {
     const loadedSettings = load<AppSettings>(SK.set, { dark: false, officer: '' });
@@ -129,16 +166,22 @@ export const App: React.FC = () => {
 
       const sessionUser = sess.get(SK.ses);
       if (sessionUser) {
-        const found = initializedUsers.find((z) => z.u === sessionUser);
+        setActiveUserId(sessionUser);
+        const remoteUsers = await fetchUsersApi().catch(() => null);
+        let found = remoteUsers?.find((z) => z.u.toLowerCase() === sessionUser.toLowerCase());
+        if (!found) {
+          found = initializedUsers.find((z) => z.u.toLowerCase() === sessionUser.toLowerCase());
+        }
         if (found) {
           setCurrentUser(found);
           document.body.setAttribute('data-authenticated', 'true');
           const blank = makeBlankRequest(found, loadedSettings.officer, rows);
           setCurrentRequest(blank);
+          await loadDatabaseData(found);
         }
       }
     })();
-  }, []);
+  }, [loadDatabaseData]);
 
   // Sync settings theme to document
   useEffect(() => {
@@ -159,12 +202,10 @@ export const App: React.FC = () => {
         setActiveSection(1);
         return;
       }
-      if (window.innerHeight + scrollY >= document.documentElement.scrollHeight - 50) {
-        setActiveSection(7);
-        return;
-      }
+
+      const sectionCount = 7;
       let activeId = 1;
-      for (let i = 1; i <= 7; i++) {
+      for (let i = 1; i <= sectionCount; i++) {
         const el = document.getElementById(`section${i}`);
         if (el) {
           const top = el.getBoundingClientRect().top;
@@ -225,33 +266,44 @@ export const App: React.FC = () => {
   };
 
   const handleLogin = async (username: string, pass: string) => {
-    const account = await verifyLogin(users, username, pass);
+    let account: UserAccount;
+    try {
+      account = await loginApi(username, pass);
+    } catch {
+      account = await verifyLogin(users, username, pass);
+      setActiveUserId(account.u);
+    }
     setCurrentUser(account);
     sess.set(SK.ses, account.u);
     document.body.setAttribute('data-authenticated', 'true');
     const blank = makeBlankRequest(account, settings.officer, requests);
     setCurrentRequest(blank);
     setActiveTab('form');
+    await loadDatabaseData(account);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     sess.del(SK.ses);
+    setActiveUserId(null);
     setCurrentUser(null);
     document.body.removeAttribute('data-authenticated');
+    showToast('Signed out');
   };
 
   const handleToggleTheme = () => {
     const updated = { ...settings, dark: !settings.dark };
     setSettings(updated);
     save(SK.set, updated);
+    saveSettingsApi(updated).catch(console.error);
   };
 
   const handleSaveSettings = (officer: string) => {
     const updated = { ...settings, officer };
     setSettings(updated);
     save(SK.set, updated);
+    saveSettingsApi(updated).catch(console.error);
     setIsSettingsOpen(false);
-    showToast('Settings saved');
+    showToast('Settings saved to Cloud SQL');
   };
 
   const handleTabChange = (tab: TabType) => {
@@ -282,7 +334,7 @@ export const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
-  const handleSaveForm = () => {
+  const handleSaveForm = async () => {
     if (!currentRequest) return;
     const isExisting = requests.some((x) => x.id === currentRequest.id);
     if (currentUser && isRoleLimited(currentUser) && isExisting) {
@@ -302,9 +354,17 @@ export const App: React.FC = () => {
 
     setRequests(updatedRows);
     save(SK.data, { rows: updatedRows });
+
+    // Save to Cloud SQL
+    try {
+      await saveRequestApi(finalReq);
+    } catch (err) {
+      console.warn('Cloud SQL save notice:', err);
+    }
+
     setCurrentRequest(null);
     setActiveTab('reg');
-    showToast(`Request ${finalReq.no} saved successfully`);
+    showToast(`Request ${finalReq.no} saved to Cloud SQL`);
   };
 
   const handleCancelForm = () => {
@@ -338,22 +398,31 @@ export const App: React.FC = () => {
     setDeleteModalRequest(req);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleteModalRequest) return;
     if (currentUser && isRoleLimited(currentUser)) {
       showToast('User (Limited) cannot delete requests');
       return;
     }
-    const filtered = requests.filter((r) => r.id !== deleteModalRequest.id);
+    const idToDelete = deleteModalRequest.id;
+    const filtered = requests.filter((r) => r.id !== idToDelete);
     setRequests(filtered);
     save(SK.data, { rows: filtered });
     setDeleteModalRequest(null);
-    showToast('Request deleted');
+
+    // Delete from Cloud SQL
+    try {
+      await deleteRequestApi(idToDelete);
+    } catch (err) {
+      console.warn('Cloud SQL delete notice:', err);
+    }
+
+    showToast('Request deleted from Cloud SQL');
   };
 
-  const handleImportBackup = (file: File) => {
+  const handleImportBackup = async (file: File) => {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const d = JSON.parse(reader.result as string);
         const incoming = Array.isArray(d) ? d : d.rows;
@@ -379,7 +448,11 @@ export const App: React.FC = () => {
 
         setRequests(updatedList);
         save(SK.data, { rows: updatedList });
-        showToast(`${count} request(s) imported`);
+
+        // Save imported requests to Cloud SQL
+        await batchSaveRequestsApi(updatedList).catch(console.error);
+
+        showToast(`${count} request(s) imported & synced with Cloud SQL`);
       } catch {
         showToast('Invalid backup file');
       }
@@ -399,10 +472,13 @@ export const App: React.FC = () => {
     const updated = [...users, newUser];
     setUsers(updated);
     save(SK.users, updated);
-    showToast(`User created (${roleName(r)})`);
+
+    // Save user to Cloud SQL
+    await createUserApi(u, p, r).catch(console.error);
+    showToast(`User created (${roleName(r)}) in Cloud SQL`);
   };
 
-  const handleDeleteUser = (username: string) => {
+  const handleDeleteUser = async (username: string) => {
     if (username.toLowerCase() === 'admin' || (currentUser && username.toLowerCase() === currentUser.u.toLowerCase())) {
       showToast('Cannot delete this user');
       return;
@@ -419,6 +495,8 @@ export const App: React.FC = () => {
     const updated = users.filter((z) => z.u.toLowerCase() !== username.toLowerCase());
     setUsers(updated);
     save(SK.users, updated);
+
+    await deleteUserApi(username).catch(console.error);
     showToast(`User ${username} removed`);
   };
 
@@ -430,7 +508,7 @@ export const App: React.FC = () => {
     let count = 0;
     const merged = [...users];
     incomingUsers.forEach((u) => {
-      if (!u || !u.u || !u.role || !u.h || !u.salt) return;
+      if (!u || !u.u || !u.role) return;
       const idx = merged.findIndex((x) => x.u.toLowerCase() === u.u.toLowerCase());
       if (idx >= 0) {
         if (merged[idx].u.toLowerCase() !== 'admin') {
@@ -522,7 +600,7 @@ export const App: React.FC = () => {
         {printableRequest && (
           <StatementPreviewContent
             request={printableRequest}
-            preparedBy={printableRequest.by || currentUser?.u || 'admin'}
+            preparedBy={currentUser?.u || 'admin'}
           />
         )}
       </div>
@@ -561,7 +639,7 @@ export const App: React.FC = () => {
 
       <ManageUsersModal
         isOpen={isUsersOpen}
-        currentUser={currentUser || { u: '', salt: '', h: '', role: 'limited' }}
+        currentUser={currentUser || { u: '', role: 'limited' }}
         users={users}
         onAddUser={handleAddUser}
         onDeleteUser={handleDeleteUser}

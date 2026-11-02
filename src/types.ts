@@ -4,10 +4,13 @@ export type UserRole = 'admin' | 'full' | 'limited';
 
 export interface UserAccount {
   u: string;
-  salt: string;
-  h: string;
   role: UserRole;
+  salt?: string;
+  h?: string;
   by?: string;
+  uid?: string;
+  email?: string;
+  displayName?: string;
 }
 
 export interface CctvRequest {

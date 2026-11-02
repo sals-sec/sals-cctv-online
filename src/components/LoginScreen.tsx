@@ -31,6 +31,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, appVer }) => 
         <img src="/logo.png" alt="SALS" className="login-logo" />
         <h1>Sign In</h1>
         <p className="login-intro">CCTV Footage Request · Form OEF-25</p>
+
         <form onSubmit={handleSubmit} autoComplete="on">
           <div className="field">
             <label htmlFor="lu">User ID</label>

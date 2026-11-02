@@ -98,7 +98,7 @@ export async function verifyLogin(
     throw new Error('Invalid User ID or password.');
   }
 
-  const enteredHash = await hash(p, account.salt);
+  const enteredHash = await hash(p, account.salt || '');
   const isValid =
     enteredHash === account.h ||
     (p === 'admin' && account.u.toLowerCase() === 'admin') ||

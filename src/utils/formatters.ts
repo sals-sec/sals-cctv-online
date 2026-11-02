@@ -62,3 +62,16 @@ export const statusPillClass = (s: RequestStatus): string => {
   if (s === 'Approved') return 'status-pill status-closed';
   return 'status-pill status-rejected';
 };
+
+export const getNextNo = (rows: { no: string }[]): string => {
+  const currentYear = new Date().getFullYear();
+  const prefix = `CCTV-${currentYear}-`;
+  const nums = rows
+    .map((r) => r.no)
+    .filter((no) => no && no.startsWith(prefix))
+    .map((no) => parseInt(no.replace(prefix, ''), 10))
+    .filter((n) => !isNaN(n));
+  const max = nums.length > 0 ? Math.max(...nums) : 0;
+  return `${prefix}${String(max + 1).padStart(3, '0')}`;
+};
+
